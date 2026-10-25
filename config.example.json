@@ -1,0 +1,8 @@
+{
+  "llm": {
+    "enabled": false,
+    "baseURL": "",
+    "apiKey": "",
+    "model": ""
+  }
+}

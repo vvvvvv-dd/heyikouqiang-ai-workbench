@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>模型与知识库</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="topbar"></div>
+
+<div class="set">
+  <div class="card pad">
+    <div class="row">
+      <div style="flex:1">
+        <div class="b">大模型增强（可选）</div>
+        <div class="xs muted">不配置也能完整运行：系统会使用内置的本地引擎。配置后，内容生成与咨询回复会由大模型润色，输出更自然；调用失败或输出不合规时自动回退本地引擎。</div>
+      </div>
+      <label class="switch"><input type="checkbox" id="en"><span class="slider"></span></label>
+    </div>
+    <div id="cfg" class="hidden" style="margin-top:16px">
+      <label class="field">
+        <span>API 地址（OpenAI 兼容 /chat/completions）</span>
+        <input class="input" id="baseURL" placeholder="https://api.deepseek.com/v1">
+      </label>
+      <div class="xs muted" style="margin:-6px 0 12px">已验证：DeepSeek、智谱、混元、通义、OpenAI、本地 Ollama（http://localhost:11434/v1）</div>
+      <label class="field">
+        <span>API Key</span>
+        <input class="input" id="apiKey" type="password" placeholder="sk-…">
+      </label>
+      <label class="field">
+        <span>模型名称</span>
+        <input class="input" id="model" placeholder="deepseek-chat">
+      </label>
+      <div class="row" style="gap:8px">
+        <button class="btn" id="test">🔌 测试连接</button>
+        <button class="btn btn-primary" id="save">保存配置</button>
+        <span class="spacer"></span>
+        <span class="xs muted" id="state"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card pad">
+    <div class="b" style="margin-bottom:4px">门诊知识库</div>
+    <div class="xs muted" style="margin-bottom:12px">
+      内容生产与咨询助手共用同一套知识库，由《颌一口腔门诊资料包》整理而来，共 <b id="total">—</b> 条。
+      其中门诊基础信息条目由资料包第二节整理，用于避免"有资料但答不上来"。
+    </div>
+    <div class="row" style="gap:8px;margin-bottom:12px">
+      <input class="input" id="q" placeholder="搜索知识库，例如：涂氟、洗牙、预约、停车">
+      <button class="btn nowrap" id="search">搜索</button>
+    </div>
+    <div id="kb" style="max-height:460px;overflow-y:auto;border:1px solid var(--line-soft);border-radius:10px"></div>
+  </div>
+
+  <div class="card pad">
+    <div class="b" style="margin-bottom:4px">演示数据</div>
+    <div class="xs muted" style="margin-bottom:12px">清空所有会话、线索与已保存内容，便于现场从零演示。</div>
+    <button class="btn btn-danger" id="reset">清空演示数据</button>
+  </div>
+</div>
+
+<script src="/js/common.js"></script>
+<script>
+renderTopbar('/settings');
+
+let cfg = {};
+apiGet('/api/settings').then(d => {
+  cfg = d.llm;
+  document.getElementById('en').checked = !!cfg.enabled;
+  document.getElementById('cfg').classList.toggle('hidden', !cfg.enabled);
+  document.getElementById('baseURL').value = cfg.baseURL || '';
+  document.getElementById('model').value = cfg.model || '';
+  document.getElementById('state').textContent = cfg.apiKey ? '已保存 Key' : '未配置 Key';
+});
+apiGet('/api/topics').then(d => document.getElementById('total').textContent = d.total);
+
+document.getElementById('en').onchange = e =>
+  document.getElementById('cfg').classList.toggle('hidden', !e.target.checked);
+
+document.getElementById('save').onclick = async () => {
+  await apiPost('/api/settings', {
+    enabled: document.getElementById('en').checked,
+    baseURL: document.getElementById('baseURL').value.trim(),
+    apiKey: document.getElementById('apiKey').value.trim(),
+    model: document.getElementById('model').value.trim()
+  });
+  toast('配置已保存');
+  const d = await apiGet('/api/engine');
+  document.getElementById('state').textContent = d.llm.available ? '✅ 已生效：' + d.llm.model : '⚠️ 配置不完整，仍使用本地引擎';
+};
+document.getElementById('test').onclick = async () => {
+  const btn = document.getElementById('test');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> 测试中…';
+  await apiPost('/api/settings', {
+    enabled: document.getElementById('en').checked,
+    baseURL: document.getElementById('baseURL').value.trim(),
+    apiKey: document.getElementById('apiKey').value.trim(),
+    model: document.getElementById('model').value.trim()
+  });
+  const r = await apiPost('/api/settings/test', {});
+  btn.disabled = false; btn.textContent = '🔌 测试连接';
+  document.getElementById('state').innerHTML = r.ok
+    ? `✅ 连接成功 · ${esc(r.model)} · ${r.ms}ms`
+    : `❌ ${esc(r.error || '连接失败')}`;
+};
+document.getElementById('reset').onclick = async () => {
+  if (!confirm('确认清空所有会话、线索与内容？')) return;
+  await apiPost('/api/demo/reset', {});
+  toast('演示数据已清空');
+};
+
+async function searchKB(kw) {
+  const d = await apiGet('/api/qa?q=' + encodeURIComponent(kw));
+  const items = kw ? d.items : d.items.slice(0, 30);
+  document.getElementById('kb').innerHTML = items.slice(0, 30).map(it => `
+    <div class="kb-item">
+      <div class="row">
+        <b>${esc(it.id)} ${esc(it.question)}</b>
+        <span class="spacer"></span>
+        <span class="tag tag-line xs">${esc(it.topicName)}</span>
+        ${it.score != null ? `<span class="tag xs">${it.score.toFixed(1)}</span>` : ''}
+      </div>
+      <p>${esc(it.answer)}</p>
+      ${it.source ? `<p class="xs" style="color:var(--brand-dark)">依据：${esc(it.source)}</p>` : ''}
+      ${(it.flags || []).length ? `<div class="row" style="gap:4px;margin-top:4px">${it.flags.map(f =>
+        `<span class="tag tag-warn xs">${esc(f)}：需转人工</span>`).join('')}</div>` : ''}
+    </div>`).join('') || '<div class="empty">没有匹配的条目</div>';
+}
+document.getElementById('search').onclick = () => searchKB(document.getElementById('q').value.trim());
+document.getElementById('q').addEventListener('keydown', e => {
+  if (e.key === 'Enter') searchKB(e.target.value.trim());
+});
+searchKB('');
+</script>
+</body>
+</html>

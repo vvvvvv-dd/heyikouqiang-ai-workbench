@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>颌一口腔 · 门诊信息</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="topbar"></div>
+
+<div class="hero" id="hero">
+  <div class="hero-tags" id="heroTags"></div>
+  <h1 id="heroName">颌一口腔</h1>
+  <p id="heroDesc">正在加载门诊资料…</p>
+  <div class="row wrap" style="justify-content:center;margin-top:18px">
+    <a class="btn btn-primary" href="/consult">💬 在线咨询</a>
+    <a class="btn" href="/map">📍 到店导览</a>
+    <a class="btn" href="javascript:void(0)" id="callBtn">📞 15673106336</a>
+  </div>
+</div>
+
+<div class="stats" id="stats"></div>
+
+<!-- 门诊简介 -->
+<div class="sec">
+  <div class="sec-head">
+    <h2>门诊简介</h2>
+    <span class="small muted">资料来源：颌一口腔门诊资料包</span>
+  </div>
+  <div class="clinic-grid">
+    <div class="card pad">
+      <div class="col" style="gap:14px">
+        <div class="col" style="gap:8px" id="introText"></div>
+        <div>
+          <div class="b small" style="margin-bottom:8px">服务项目</div>
+          <div class="svc-grid" id="svcGrid"></div>
+        </div>
+        <div class="notice xs">
+          具体项目是否适合您，需要医生检查后评估。本页所有描述来自门诊提供的资料，不包含疗效承诺或价格信息。
+        </div>
+      </div>
+    </div>
+
+    <div class="card pad">
+      <div class="b small" style="margin-bottom:12px">门诊信息</div>
+      <div class="info-list">
+        <div class="info-row">
+          <span class="info-ico">📍</span>
+          <div>
+            <div class="info-k">门诊地址</div>
+            <div class="info-v" id="iAddr">—</div>
+            <a class="xs" href="/map">查看地铁与自驾路线 →</a>
+          </div>
+        </div>
+        <div class="info-row">
+          <span class="info-ico">🕐</span>
+          <div>
+            <div class="info-k">接诊时间</div>
+            <div class="info-v" id="iHours">—</div>
+          </div>
+        </div>
+        <div class="info-row">
+          <span class="info-ico">📞</span>
+          <div>
+            <div class="info-k">电话 / 微信</div>
+            <div class="info-v" id="iPhone">—</div>
+          </div>
+        </div>
+        <div class="info-row">
+          <span class="info-ico">📋</span>
+          <div>
+            <div class="info-k">预约方式</div>
+            <div class="info-v" id="iBook">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="notice xs" style="margin-top:14px">
+        以上时间为门诊常规安排，节假日与医生具体排班以门诊确认为准。
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 医生团队 -->
+<div class="sec">
+  <div class="sec-head">
+    <h2>医生团队</h2>
+    <span class="small muted">资料可辨认的信息有限，履历细节以门诊核对后的书面介绍为准</span>
+  </div>
+  <div class="doc-grid" id="docGrid"></div>
+</div>
+
+<!-- 门诊环境 -->
+<div class="sec">
+  <div class="sec-head">
+    <h2>门诊环境</h2>
+    <span class="small muted">门诊提供的实拍图片 · 点击可放大</span>
+  </div>
+  <div class="gal-grid" id="galGrid"></div>
+  <div class="notice xs" style="margin-top:12px">
+    图片仅展示拍摄时的空间状态，不构成设施全天开放、设备型号或医生排班的承诺。
+  </div>
+</div>
+
+<!-- 每日口腔科普 -->
+<div class="sec" id="dailySec">
+  <div class="sec-head">
+    <h2>每日口腔科普</h2>
+    <span class="small muted">每天自动更新一条 · 内容直接取自门诊标准问答，未经改写</span>
+  </div>
+
+  <div class="daily-wrap">
+    <div class="card daily-main" id="dailyCard">
+      <div class="muted small">正在加载今日科普…</div>
+    </div>
+
+    <div class="card daily-side">
+      <div class="row" style="justify-content:space-between;margin-bottom:10px">
+        <div class="b small">往期回顾</div>
+        <a class="xs" href="javascript:void(0)" id="backToday" style="display:none">← 回到今日</a>
+      </div>
+      <div id="recentList"></div>
+      <div class="notice xs" id="tomorrowBox" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <div style="margin-top:24px">
+    <div class="row wrap" style="justify-content:space-between;gap:8px">
+      <div class="b small">科普库</div>
+      <div class="xs muted" id="poolMeta">—</div>
+    </div>
+    <div class="kb-toolbar">
+      <div class="kb-chips" id="kbChips"></div>
+      <input class="input kb-search" id="kbSearch" placeholder="搜索科普问题，例如：洗牙 / 涂氟 / 槟榔">
+    </div>
+    <div class="kb-grid" id="kbList"></div>
+    <div class="notice xs" style="margin-top:12px">
+      科普内容来自门诊提供的问答资料，适用于一般性了解，不能替代医生的面诊判断。
+      标「需医生检查评估」的条目表示个体差异较大，需要检查后才能确定。
+    </div>
+  </div>
+</div>
+
+<!-- AI 工具 -->
+<div class="sec">
+  <div class="sec-head">
+    <h2>门诊 AI 工具</h2>
+    <span class="small muted">基于同一套门诊知识库构建</span>
+  </div>
+  <div class="tool-grid">
+    <a class="card pad tool" href="/content">
+      <div class="row" style="gap:10px">
+        <div class="tool-ico" style="background:rgba(244,63,94,.14)">✍️</div>
+        <div>
+          <div class="b">内容生产</div>
+          <div class="xs muted">运营人员使用</div>
+        </div>
+      </div>
+      <p>输入一个主题，输出适合小红书、抖音、视频号、公众号的差异化文案，可编辑、可导出。</p>
+    </a>
+    <a class="card pad tool" href="/consult">
+      <div class="row" style="gap:10px">
+        <div class="tool-ico" style="background:var(--brand-soft)">💬</div>
+        <div>
+          <div class="b">咨询助手</div>
+          <div class="xs muted">客户使用 · 移动端</div>
+        </div>
+      </div>
+      <p>解答门诊常见问题、理解就诊需求、登记预约意向；涉及诊断与费用的问题一律转人工。</p>
+    </a>
+    <a class="card pad tool" href="/workbench">
+      <div class="row" style="gap:10px">
+        <div class="tool-ico" style="background:rgba(129,140,248,.16)">📋</div>
+        <div>
+          <div class="b">门诊工作台</div>
+          <div class="xs muted">前台 / 工作人员</div>
+        </div>
+      </div>
+      <p>查看咨询摘要、客户授权信息、预约意向与处理状态，人工接手后可更新状态并记录跟进。</p>
+    </a>
+    <a class="card pad tool" href="/map">
+      <div class="row" style="gap:10px">
+        <div class="tool-ico" style="background:rgba(251,191,36,.14)">📍</div>
+        <div>
+          <div class="b">到店导览</div>
+          <div class="xs muted">客户使用</div>
+        </div>
+      </div>
+      <p>地铁与自驾两条路线、实景示意与一键跳转地图导航，解答「怎么过来」这件事。</p>
+    </a>
+  </div>
+</div>
+
+<div style="max-width:1180px;margin:0 auto 50px;padding:0 20px">
+  <div class="card pad">
+    <div class="row" style="align-items:flex-start;gap:24px;flex-wrap:wrap">
+      <div style="flex:1;min-width:260px">
+        <div class="b" style="margin-bottom:6px">安全与边界</div>
+        <p class="muted small" style="margin:0">
+          AI 不做诊断、不给治疗方案、不给具体报价、不承诺排班号源；不虚构医生履历与案例；
+          不制造焦虑促成交易。资料中不存在的信息，AI 明确说明并转人工。涉及医疗判断的内容由医生负责。
+        </p>
+      </div>
+      <div style="flex:1;min-width:260px">
+        <div class="b" style="margin-bottom:6px">为什么内容与咨询能连起来</div>
+        <p class="muted small" style="margin:0">
+          运营用内容生产发布一篇儿童涂氟科普 → 家长产生疑问 → 扫码进入咨询助手 →
+          AI 依据同一套门诊知识库作答并登记预约意向 → 工作人员在工作台接手确认到店时间。
+        </p>
+      </div>
+    </div>
+    <div class="row" style="margin-top:16px;gap:8px;flex-wrap:wrap">
+      <a class="btn btn-sm" href="/settings">⚙️ 配置大模型（可选）</a>
+      <span class="tag tag-line xs">未配置时自动使用本地引擎，断网也能完整演示</span>
+    </div>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox">
+  <img id="lbImg" src="" alt="放大查看">
+  <div class="lb-cap" id="lbCap"></div>
+</div>
+
+<script src="/js/common.js"></script>
+<script>
+renderTopbar('/');
+
+const SVC_ICON = { '牙齿修复': '🛠️', '牙齿矫正': '😁', '种植牙': '🔩', '牙周治疗': '🌿', '儿童齿科': '🧸', '口腔检查': '🔍' };
+let assets = [];
+
+function assetOf(keyword) { return assets.find(a => a.title.includes(keyword)); }
+
+(async function () {
+  let clinic = null;
+  try {
+    const c = await api('/api/clinic');
+    clinic = c.clinic; assets = c.assets || [];
+  } catch (e) { /* 保持空态 */ }
+
+  /* Hero */
+  if (clinic) {
+    document.title = clinic.name + ' · 门诊信息';
+    document.getElementById('heroName').textContent = clinic.name;
+    document.getElementById('heroDesc').textContent =
+      `${clinic.name}位于长沙市雨花区韶山北路雅斯特国际酒店三楼，为儿童、成年人与老年人提供口腔健康服务。` +
+      `门诊是暖色调的室内空间，设有休息区、儿童活动等候区与独立诊疗室；带孩子就诊时，牙椅配有动画片，医生会先安抚再逐步引导。` +
+      `门诊希望逐步减少对第三方平台低价引流的依赖，靠专业能力、服务体验和客户信任实现长期发展。`;
+    document.getElementById('callBtn').href = 'tel:' + clinic.contact;
+
+    document.getElementById('heroTags').innerHTML = [
+      '📍 长沙 · 雨花区',
+      '🚇 地铁 6/7 号线直达',
+      '🦷 儿童 · 成人 · 老年',
+      '📅 周一至周日接诊'
+    ].map(t => `<span class="tag tag-brand">${t}</span>`).join('');
+
+    /* 服务项目 */
+    document.getElementById('svcGrid').innerHTML = (clinic.services || []).map((s, i) =>
+      `<div class="svc">${s}</div>`).join('');
+
+    /* 门诊信息 */
+    document.getElementById('iAddr').textContent = clinic.address;
+    document.getElementById('iHours').textContent =
+      `周一至周五 ${clinic.hours.weekday}　周六 / 周日 ${clinic.hours.weekend}`;
+    document.getElementById('iPhone').textContent = clinic.contact;
+    document.getElementById('iBook').textContent = clinic.booking;
+
+    /* 简介正文要点 */
+    document.getElementById('introText').innerHTML = [
+      ['服务范围', '牙齿修复、牙齿矫正、种植牙、牙周治疗、儿童齿科与口腔检查，覆盖儿童、成年人与老年人的常见口腔需求。'],
+      ['空间与设施', '暖色调室内空间：休息区（沙发与茶几）、儿童活动等候区（有玩具陈列）、独立口腔诊疗室（牙椅与照明设备）与室内走廊导视。'],
+      ['儿童就诊', '诊疗牙椅配了动画片，医生会先安抚再逐步引导孩子适应。对非常抗拒的孩子，非急症情况下可考虑先做简单可接受的项目，通过多次接触减少恐惧，具体由医生决定。'],
+      ['术后跟进', '拔牙等治疗后，门诊会建立一对一客户群并在群内发送注意事项，如有不适可及时联系门诊。']
+    ].map(([k, v]) => `<div><div class="b small" style="margin-bottom:3px">${k}</div><div class="small muted" style="margin:0">${v}</div></div>`).join('');
+
+    /* 医生 */
+    document.getElementById('docGrid').innerHTML = (clinic.doctors || []).map(d => {
+      const photo = assets.find(a => a.title.includes(d.name));
+      return `<div class="card doc-card">
+        <div class="doc-photo">${photo ? `<img src="${photo.url}" alt="${esc(d.name)}医生介绍卡" loading="lazy">` : '<span style="font-size:34px">🦷</span>'}</div>
+        <div class="doc-body">
+          <div class="row wrap" style="gap:8px">
+            <div class="b" style="font-size:17px">${esc(d.name)}</div>
+            <span class="tag tag-brand">${esc(d.title)}</span>
+          </div>
+          <p class="small muted" style="margin:8px 0 0">
+            ${esc(d.name)}${esc(d.title)}，颌一口腔门诊医生。
+          </p>
+          <div class="notice xs" style="margin-top:10px">
+            门诊资料中可辨认的是姓名与「${esc(d.title)}」身份。执业年限、擅长方向、职称与认证等信息请以门诊核对后的书面介绍为准，本页不作补充。
+          </div>
+          <div class="row wrap" style="gap:8px;margin-top:12px">
+            <a class="btn btn-sm" href="/consult">向助手咨询医生相关问题</a>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  /* 环境相册：排除两张到店示意图与两张医生介绍卡，其余为门诊实景 */
+  const gallery = assets.filter(a => !a.title.includes('示意图') && !a.title.includes('介绍卡'));
+  document.getElementById('galGrid').innerHTML = gallery.map(a =>
+    `<div class="gal-item" data-src="${a.url}" data-title="${esc(a.title)}｜${esc(a.desc)}">
+      <img src="${a.url}" alt="${esc(a.title)}" loading="lazy">
+      <div class="gal-cap"><b>${esc(a.title)}</b><span class="xs muted">${esc(a.desc)}</span></div>
+    </div>`).join('');
+
+  /* 引擎状态 → 统计 */
+  try {
+    const d = await api('/api/engine');
+    document.getElementById('stats').innerHTML = [
+      [((clinic && clinic.doctors) || []).length + ' 位', '门诊医师'],
+      [((clinic && clinic.services) || []).length + ' 项', '诊疗服务'],
+      [d.kb.qa + ' 条', '门诊标准问答'],
+      [gallery.length + ' 张', '门诊实景图片'],
+      ['7 天', '每周接诊'],
+      [d.llm.available ? '本地 + 大模型' : '本地引擎', '当前运行模式']
+    ].map(([b, s]) => `<div class="card stat"><b>${b}</b><span>${s}</span></div>`).join('');
+  } catch (e) { }
+})();
+
+/* 环境图灯箱 */
+const lb = document.getElementById('lightbox');
+document.getElementById('galGrid').addEventListener('click', e => {
+  const it = e.target.closest('.gal-item'); if (!it) return;
+  document.getElementById('lbImg').src = it.dataset.src;
+  document.getElementById('lbCap').textContent = it.dataset.title;
+  lb.classList.add('on');
+});
+lb.addEventListener('click', () => lb.classList.remove('on'));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') lb.classList.remove('on'); });
+
+/* ========== 每日口腔科普 ========== */
+const READ_KEY = 'hy_daily_read';
+const TONE_TAG = { brand: 'tag tag-brand', warn: 'tag tag-warn', danger: 'tag tag-danger' };
+let DAILY = null, POOL_ALL = [], BY_ID = {}, curChip = 'all', curKw = '';
+
+function copyText(t) {
+  if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(t);
+  return new Promise((res, rej) => {
+    const ta = document.createElement('textarea');
+    ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); res(); } catch (e) { rej(e); }
+    document.body.removeChild(ta);
+  });
+}
+
+function askUrl(q) { return '/consult?q=' + encodeURIComponent(q); }
+
+function relatedFor(item) {
+  const same = POOL_ALL.filter(x => x.topicName === item.topicName && x.id !== item.id);
+  const grp = POOL_ALL.filter(x => x.group === item.group && x.topicName !== item.topicName);
+  return [...same, ...grp].slice(0, 3);
+}
+
+function renderMain(item, mode, stamp) {
+  const card = document.getElementById('dailyCard');
+  const rel = mode === 'today' ? (item.related || relatedFor(item)) : relatedFor(item);
+  card.innerHTML =
+    `<div class="daily-top">
+      ${(mode === 'today' && item.isNew) ? '<span class="dot-new"></span>' : ''}
+      <span class="daily-date">${esc(stamp)}</span>
+      ${mode === 'today' ? '<span class="tag tag-brand">今日更新</span>' : ''}
+      <span class="tag">${item.icon} ${esc(item.groupName)}</span>
+      <span class="${TONE_TAG[item.tone] || 'tag'}">${esc(item.careLabel)}</span>
+    </div>
+    <h3 class="daily-q">${esc(item.question)}</h3>
+    <p class="daily-a">${esc(item.answer)}</p>
+    <div class="daily-acts">
+      <button class="btn btn-sm" id="copyBtn">📋 复制这段科普</button>
+      <a class="btn btn-sm btn-primary" href="${askUrl(item.question)}">💬 带着这个问题去问助手</a>
+    </div>
+    ${rel.length ? `<div class="daily-related">
+      <div class="daily-related-t">相关的几个问题</div>
+      ${rel.map(r => `<div class="rel-item" data-id="${r.id}"><span>${r.icon}</span><span>${esc(r.question)}</span></div>`).join('')}
+    </div>` : ''}
+    <div class="daily-src" style="margin-top:12px">来源：门诊标准问答 ${esc(item.id)}　·　内容与门诊资料一致，未作改写</div>`;
+
+  document.getElementById('copyBtn').onclick = async () => {
+    const text = `${item.question}\n${item.answer}\n\n—— 颌一口腔`;
+    try { await copyText(text); toast('已复制，可直接粘贴到朋友圈或客户群'); }
+    catch (e) { toast('复制失败，请手动选择文本'); }
+  };
+  card.querySelectorAll('.rel-item').forEach(el => {
+    el.onclick = () => {
+      const target = BY_ID[el.dataset.id];
+      if (target) renderMain(target, 'past', `科普库 · ${target.icon} ${target.groupName}`);
+    };
+  });
+  document.getElementById('backToday').style.display = mode === 'today' ? 'none' : '';
+}
+
+function markRecent(id) {
+  document.querySelectorAll('.recent-item').forEach(el => el.classList.toggle('on', el.dataset.id === id));
+}
+
+function renderRecent() {
+  const list = (DAILY.recent || []).map(r =>
+    `<div class="recent-item" data-id="${r.id}">
+      <span class="recent-d">${esc(r.label)}</span>
+      <span class="recent-t">${r.icon} ${esc(r.question)}</span>
+    </div>`).join('');
+  document.getElementById('recentList').innerHTML =
+    `<div class="recent-item" data-id="${DAILY.today.item.id}">
+      <span class="recent-d">今日</span>
+      <span class="recent-t">${DAILY.today.item.icon} ${esc(DAILY.today.item.question)}</span>
+    </div>` + list;
+  document.querySelectorAll('.recent-item').forEach(el => {
+    el.onclick = () => {
+      const it = BY_ID[el.dataset.id];
+      if (!it) return;
+      const isToday = el.dataset.id === DAILY.today.item.id;
+      markRecent(el.dataset.id);
+      renderMain(isToday ? DAILY.today.item : it, isToday ? 'today' : 'past',
+        isToday ? DAILY.today.display : `往期回顾 · ${el.querySelector('.recent-d').textContent}`);
+    };
+  });
+  markRecent(DAILY.today.item.id);
+}
+
+function renderChips() {
+  document.getElementById('kbChips').innerHTML =
+    `<div class="kb-chip${curChip === 'all' ? ' on' : ''}" data-g="all">全部 ${DAILY.pool}</div>` +
+    DAILY.groups.map(g =>
+      `<div class="kb-chip${curChip === g.id ? ' on' : ''}" data-g="${g.id}">${g.icon} ${esc(g.name)} ${g.count}</div>`).join('');
+  document.querySelectorAll('.kb-chip').forEach(c => {
+    c.onclick = () => { curChip = c.dataset.g; renderChips(); renderList(); };
+  });
+}
+
+function renderList() {
+  const kw = curKw.trim();
+  let items = curChip === 'all' ? POOL_ALL : POOL_ALL.filter(x => x.group === curChip);
+  if (kw) items = items.filter(x => (x.question + x.answer).includes(kw));
+  document.getElementById('kbList').innerHTML = items.length
+    ? items.map(it => `
+      <div class="kb-item" data-id="${it.id}">
+        <div class="kb-head">
+          <span class="kb-caret">▶</span>
+          <span>${it.icon}</span>
+          <span class="kb-q">${esc(it.question)}</span>
+          <span class="${TONE_TAG[it.tone] || 'tag'} xs">${esc(it.careLabel)}</span>
+        </div>
+        <div class="kb-body">
+          <p class="kb-a">${esc(it.answer)}</p>
+          <div class="row wrap" style="gap:8px;margin-top:10px">
+            <a class="btn btn-sm" href="${askUrl(it.question)}">💬 去问助手</a>
+            <span class="xs muted">${esc(it.id)}</span>
+          </div>
+        </div>
+      </div>`).join('')
+    : '<div class="kb-empty">没有匹配的科普内容，换个关键词试试</div>';
+  document.querySelectorAll('.kb-item').forEach(el => {
+    el.querySelector('.kb-head').onclick = () => el.classList.toggle('on');
+  });
+}
+
+(async function initDaily() {
+  const d = new URLSearchParams(location.search).get('d');
+  let meta = '—';
+  try {
+    DAILY = await api('/api/daily' + (d ? '?date=' + encodeURIComponent(d) : ''));
+  } catch (e) {
+    document.getElementById('dailyCard').innerHTML = '<div class="muted small">科普数据加载失败</div>';
+    return;
+  }
+  POOL_ALL = DAILY.groups.reduce((a, g) => a.concat(g.items), []);
+  POOL_ALL.forEach(x => { BY_ID[x.id] = x; });
+
+  let reads = [];
+  try { reads = JSON.parse(localStorage.getItem(READ_KEY) || '[]'); } catch (e) { }
+  const isNew = reads.indexOf(DAILY.today.key) < 0;
+  if (isNew) {
+    reads.push(DAILY.today.key);
+    try { localStorage.setItem(READ_KEY, JSON.stringify(reads.slice(-60))); } catch (e) { }
+  }
+  DAILY.today.item.isNew = isNew;
+
+  meta = `共 ${DAILY.pool} 条 · 选自门诊 ${DAILY.totalQA} 条标准问答 · 轮完一次约 ${DAILY.pool} 天`;
+  document.getElementById('poolMeta').textContent = meta;
+  document.getElementById('tomorrowBox').innerHTML =
+    `明日预告　${DAILY.tomorrow.icon} ${esc(DAILY.tomorrow.question)}`;
+
+  renderMain(DAILY.today.item, 'today', DAILY.today.display);
+  renderRecent();
+  renderChips();
+  renderList();
+
+  document.getElementById('backToday').onclick = () => {
+    renderMain(DAILY.today.item, 'today', DAILY.today.display);
+    markRecent(DAILY.today.item.id);
+  };
+  document.getElementById('kbSearch').oninput = e => { curKw = e.target.value; renderList(); };
+})();
+</script>
+</body>
+</html>

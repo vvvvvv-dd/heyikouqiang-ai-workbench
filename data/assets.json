@@ -1,0 +1,86 @@
+[
+  {
+    "file": "clinic-01.jpg",
+    "url": "/assets/clinic-01.jpg",
+    "title": "地铁/步行到店示意图",
+    "desc": "辅助示意：地铁出站、酒店入口与乘电梯路径。",
+    "bytes": 170703
+  },
+  {
+    "file": "clinic-02.jpg",
+    "url": "/assets/clinic-02.jpg",
+    "title": "自驾停车导航示意图",
+    "desc": "辅助示意：地下停车场入口、地库路径和酒店电梯。",
+    "bytes": 148530
+  },
+  {
+    "file": "clinic-03.jpg",
+    "url": "/assets/clinic-03.jpg",
+    "title": "陈子龙医生介绍卡",
+    "desc": "图片可辨认：陈子龙，医师。其余履历、头衔、认证等小字需要门诊核对后再录入。",
+    "bytes": 114562
+  },
+  {
+    "file": "clinic-04.jpg",
+    "url": "/assets/clinic-04.jpg",
+    "title": "郭秋池医生介绍卡",
+    "desc": "图片可辨认：郭秋池，医师。其余履历与具体任职经历请以门诊核对后的书面介绍为准。",
+    "bytes": 50293
+  },
+  {
+    "file": "clinic-05.jpg",
+    "url": "/assets/clinic-05.jpg",
+    "title": "门诊休息区照片",
+    "desc": "室内暖色调休息区、沙发及茶几。",
+    "bytes": 30178
+  },
+  {
+    "file": "clinic-06.jpg",
+    "url": "/assets/clinic-06.jpg",
+    "title": "门诊室内绿植景观",
+    "desc": "室内绿植、走廊入口与门。",
+    "bytes": 53479
+  },
+  {
+    "file": "clinic-07.jpg",
+    "url": "/assets/clinic-07.jpg",
+    "title": "口腔诊疗室照片一",
+    "desc": "诊疗牙椅、照明及相关设备。",
+    "bytes": 163420
+  },
+  {
+    "file": "clinic-08.jpg",
+    "url": "/assets/clinic-08.jpg",
+    "title": "门诊走廊照片一",
+    "desc": "诊室走廊及室内导视空间。",
+    "bytes": 173472
+  },
+  {
+    "file": "clinic-09.jpg",
+    "url": "/assets/clinic-09.jpg",
+    "title": "儿童区照片",
+    "desc": "儿童活动及等候区域，图中可见玩具陈列。",
+    "bytes": 31908
+  },
+  {
+    "file": "clinic-10.jpg",
+    "url": "/assets/clinic-10.jpg",
+    "title": "门诊走廊照片二",
+    "desc": "门诊室内走廊。",
+    "bytes": 59373
+  },
+  {
+    "file": "clinic-11.jpg",
+    "url": "/assets/clinic-11.jpg",
+    "title": "门诊前台/入口照片",
+    "desc": "图中可见“颌一口腔”门头和入口。",
+    "bytes": 66329
+  },
+  {
+    "file": "clinic-12.jpg",
+    "url": "/assets/clinic-12.jpg",
+    "title": "口腔诊疗室照片二",
+    "desc": "暖色调诊室及牙椅。",
+    "bytes": 50999
+  }
+]

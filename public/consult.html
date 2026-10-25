@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>颌一口腔 · 智能咨询助手</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>body { background-color: var(--bg); } .topbar { display: none; } .chat-shell { height: 100vh; border: 0; }</style>
+</head>
+<body>
+<div class="chat-shell" id="shell">
+  <div class="chat-head">
+    <div class="avatar">🦷</div>
+    <div style="flex:1;min-width:0">
+      <div class="b" style="font-size:14.5px">颌一口腔 · 智能咨询助手</div>
+      <div class="xs muted" id="statusLine">门诊信息 · 预约流程 · 口腔科普</div>
+    </div>
+    <button class="btn btn-sm" id="elderBtn" title="放大字体、简化表达">🔠 适老化</button>
+  </div>
+
+  <div class="chat-body" id="body"></div>
+
+  <div class="quick" id="quick"></div>
+
+  <div class="chat-foot">
+    <textarea class="input" id="input" rows="1" placeholder="说说您的情况或想问的问题…"></textarea>
+    <button class="btn btn-primary" id="send">发送</button>
+  </div>
+</div>
+
+<div id="modalHost"></div>
+
+<script src="/js/common.js"></script>
+<script>
+let sid = localStorage.getItem('hy_sid') || ('s_' + Math.random().toString(36).slice(2));
+localStorage.setItem('hy_sid', sid);
+let elderly = localStorage.getItem('hy_elderly') === '1';
+let busy = false;
+let pendingConsent = null;
+
+/* 来源渠道：运营在推文/海报里放 ?src=xxx，工作台就能看到客户是从哪来的 */
+const SRC_MAP = {
+  article: '公众号文章', poster: '门诊海报', xhs: '小红书', dy: '抖音',
+  sph: '视频号', pyq: '朋友圈', qr: '门诊二维码', web: '门诊官网'
+};
+const params = new URLSearchParams(location.search);
+const srcKey = params.get('src') || '';
+const seedQ = params.get('q') || '';
+const SOURCE = seedQ ? '每日科普' : (SRC_MAP[srcKey] || (srcKey ? '其他：' + srcKey : '直接访问'));
+
+const QUICK = ['门诊在哪里', '怎么预约', '洗牙多久一次', '孩子几岁可以涂氟', '种植牙能用多久', '嚼槟榔要注意什么'];
+
+function bubble(role, html, metaHtml) {
+  const d = document.createElement('div');
+  d.className = 'msg ' + role;
+  d.innerHTML = esc(html) + (metaHtml || '');
+  document.getElementById('body').appendChild(d);
+  document.getElementById('body').scrollTop = 1e9;
+  return d;
+}
+function notice(text, urgent) {
+  const d = document.createElement('div');
+  d.className = 'notice' + (urgent ? ' urgent' : '');
+  d.textContent = text;
+  document.getElementById('body').appendChild(d);
+  document.getElementById('body').scrollTop = 1e9;
+}
+
+function srcHtml(sources) {
+  if (!sources || !sources.length) return '';
+  return `<div class="msg-meta">${sources.slice(0, 3).map(s =>
+    `<span class="src-chip">📄 ${esc(s.id)} ${esc(s.question.slice(0, 18))}</span>`).join('')}</div>`;
+}
+
+function showConsent() {
+  document.getElementById('modalHost').innerHTML = `
+  <div class="modal-mask">
+    <div class="modal">
+      <h3>关于您的信息</h3>
+      <p>为了方便门诊工作人员与您联系、确认到店时间，是否授权我们留存您刚才提供的称呼与联系电话？</p>
+      <div class="card" style="padding:11px 13px;background:var(--bg-soft);box-shadow:none;margin-bottom:14px">
+        <div class="xs muted">用途：仅用于本次预约沟通与后续服务，不作其他用途。<br>您可随时联系门诊要求删除这些信息。</div>
+      </div>
+      <div class="row" style="justify-content:flex-end">
+        <button class="btn" id="cNo">暂不授权</button>
+        <button class="btn btn-primary" id="cYes">同意授权</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('cYes').onclick = async () => {
+    await apiPost('/api/consent', { sessionId: sid, granted: true });
+    document.getElementById('modalHost').innerHTML = '';
+    toast('已授权，门诊工作人员会尽快与您联系');
+  };
+  document.getElementById('cNo').onclick = async () => {
+    await apiPost('/api/consent', { sessionId: sid, granted: false });
+    document.getElementById('modalHost').innerHTML = '';
+    toast('已跳过，您可以直接联系门诊 15673106336');
+  };
+}
+
+async function send(text) {
+  text = (text || '').trim();
+  if (!text || busy) return;
+  const ta = document.getElementById('input');
+  ta.value = '';
+  bubble('user', text);
+  busy = true;
+  bubble('bot', '正在思考', '');
+  const loading = document.getElementById('body').lastChild;
+  loading.innerHTML = '<span class="muted">正在思考<span class="dots"></span></span>';
+  try {
+    const r = await apiPost('/api/chat', { sessionId: sid, message: text, elderly, source: SOURCE });
+    loading.outerHTML = `<div class="msg bot">${esc(r.text)}${srcHtml(r.sources)}</div>`;
+    if (r.llmNote) console.info('[引擎]', r.llmNote);
+
+    if (r.handoff) {
+      notice(r.urgency === 'high'
+        ? '⚠️ 已标记为加急，转门诊工作人员处理'
+        : '↗️ 已转门诊工作人员，会尽快与您联系');
+      const bar = document.getElementById('statusLine');
+      bar.innerHTML = '<span style="color:var(--warn)">已转人工 · 可直接联系门诊 15673106336</span>';
+      showConsent();
+    }
+    if (r.bookingDone) {
+      notice('✅ 预约意向已提交，门诊工作人员会按您留的号码联系您');
+      showConsent();
+    }
+    document.getElementById('body').scrollTop = 1e9;
+  } catch (e) {
+    loading.outerHTML = `<div class="msg bot">网络或服务异常，请稍后再试。您也可以直接联系门诊 15673106336。</div>`;
+  }
+  busy = false;
+  ta.focus();
+}
+
+function applyElderly() {
+  document.getElementById('shell').classList.toggle('elderly', elderly);
+  document.getElementById('elderBtn').textContent = elderly ? '🔠 标准模式' : '🔠 适老化';
+  document.getElementById('elderBtn').classList.toggle('btn-primary', elderly);
+}
+
+document.getElementById('send').onclick = () => send(document.getElementById('input').value);
+document.getElementById('input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(e.target.value); }
+});
+document.getElementById('elderBtn').onclick = () => {
+  elderly = !elderly;
+  localStorage.setItem('hy_elderly', elderly ? '1' : '0');
+  applyElderly();
+};
+
+document.getElementById('quick').innerHTML =
+  QUICK.map(q => `<button class="chip" onclick="send('${q}')">${q}</button>`).join('');
+
+apiGet('/api/clinic').then(d => {
+  const c = d.clinic;
+  document.getElementById('statusLine').title = c.address;
+});
+
+applyElderly();
+
+if (seedQ) {
+  /* 从首页「每日科普」带着具体问题进来：预填输入框，由客户确认后再发送 */
+  bubble('bot', `看到您刚读过今天的科普：\n\n「${esc(seedQ)}」\n\n想继续了解的话，直接点发送就行；也可以改成您自己的情况再问。`);
+  const ta = document.getElementById('input');
+  ta.value = seedQ;
+  setTimeout(() => {
+    ta.focus();
+    try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) { }
+  }, 80);
+} else {
+  bubble('bot', '您好，我是颌一口腔的智能助手。\n\n可以问我门诊位置、怎么预约、洗牙和涂氟这些常见问题；如果想约时间，直接告诉我项目和时间就行。\n\n如果是牙齿不舒服、治疗方案或费用，我会帮您转给门诊的工作人员或医生。');
+}
+notice('AI 只做信息解答与预约登记，不做诊断、不给治疗方案和报价。急症请及时就医。');
+</script>
+</body>
+</html>

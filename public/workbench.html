@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>门诊工作台 · 咨询与预约线索</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="topbar"></div>
+
+<div class="sec" style="padding-top:20px;margin-bottom:0">
+  <div class="row wrap" style="gap:10px;align-items:flex-end">
+    <div style="flex:1;min-width:220px">
+      <h1 style="margin:0 0 4px;font-size:22px">门诊工作台</h1>
+      <div class="small muted">咨询助手产生的每一条需求都落在这里 · 页面每 8 秒自动刷新</div>
+    </div>
+    <div class="row wrap" style="gap:8px">
+      <a class="btn btn-sm" href="/consult" title="打开客户咨询端">💬 打开咨询端</a>
+      <button class="btn btn-sm" onclick="exportCsv()">⬇️ 导出当前列表</button>
+    </div>
+  </div>
+</div>
+
+<div class="kpi" id="kpi"></div>
+
+<div class="wb">
+  <div class="card" style="overflow:hidden">
+    <div style="padding:12px 14px;border-bottom:1px solid var(--line-soft)">
+      <div class="row wrap" style="gap:6px" id="filters"></div>
+      <div class="row" style="gap:8px;margin-top:10px">
+        <input class="input" id="search" placeholder="搜索姓名 / 电话 / 项目 / 摘要" style="flex:1;min-width:150px">
+        <select class="input" id="sort" style="flex:none;width:132px">
+          <option value="new">最新优先</option>
+          <option value="wait">最久未处理</option>
+          <option value="urgent">加急优先</option>
+        </select>
+      </div>
+      <div class="xs muted" id="countLine" style="margin-top:8px"></div>
+    </div>
+    <div id="list" style="max-height:calc(100vh - 320px);overflow-y:auto"></div>
+  </div>
+
+  <div class="card" id="detail">
+    <div class="empty">从左侧选择一条线索查看详情</div>
+  </div>
+</div>
+
+<script src="/js/common.js"></script>
+<script>
+const STATUS = {
+  pending: { label: '待跟进', cls: 'tag-warn' },
+  contacted: { label: '已联系', cls: 'tag-brand' },
+  arrived: { label: '已到诊', cls: 'tag-ok' },
+  closed: { label: '已关闭', cls: 'tag-line' }
+};
+const SLA_HOURS = 4;   // 门诊内部约定：待跟进线索超过 4 小时未处理视为超时
+
+let leads = [], cur = null, filter = 'all', kw = '', sort = 'new';
+
+renderTopbar('/workbench');
+
+/* ---------- 时间工具 ---------- */
+function toDate(s) { return s ? new Date(String(s).replace(/-/g, '/')) : null; }
+function todayKey() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+function mins(ms) { return Math.floor(ms / 60000); }
+function durText(ms) {
+  const m = mins(ms);
+  if (m < 1) return '刚刚';
+  if (m < 60) return m + ' 分钟';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + ' 小时' + (m % 60 ? (m % 60) + ' 分' : '');
+  return Math.floor(h / 24) + ' 天' + (h % 24 ? (h % 24) + ' 小时' : '');
+}
+/* 待处理时长；已处理的返回首次响应时间 */
+function slaInfo(l) {
+  const born = toDate(l.createdAt);
+  if (!born) return null;
+  const first = (l.notes || []).length ? toDate(l.notes[0].at) : null;
+  const handOffAt = l.status !== 'pending' ? (first || toDate(l.updatedAt)) : null;
+  const ms = (handOffAt || new Date()) - born;
+  return { ms, waited: !handOffAt, done: handOffAt ? first : false, text: durText(ms) };
+}
+
+async function load() {
+  ({ leads } = await apiGet('/api/leads'));
+  renderKpi(); renderFilters(); renderList();
+  if (cur) {
+    const still = leads.find(l => l.id === cur);
+    if (still) renderDetail(still); else { cur = null; document.getElementById('detail').innerHTML = '<div class="empty">从左侧选择一条线索查看详情</div>'; }
+  }
+}
+
+function renderKpi() {
+  const tk = todayKey();
+  const pend = leads.filter(l => l.status === 'pending');
+  const n = {
+    all: leads.length,
+    today: leads.filter(l => String(l.createdAt).slice(0, 10) === tk).length,
+    pending: pend.length,
+    overdue: pend.filter(l => { const s = slaInfo(l); return s && mins(s.ms) > SLA_HOURS * 60; }).length,
+    urgent: leads.filter(l => l.urgency === 'high' && l.status === 'pending').length,
+    arrived: leads.filter(l => l.status === 'arrived').length
+  };
+  document.getElementById('kpi').innerHTML = [
+    ['线索总数', n.all, ''], ['今日新增', n.today, 'tag-brand'], ['待跟进', n.pending, 'tag-warn'],
+    [`超时未跟进`, n.overdue, 'tag-danger'], ['加急待处理', n.urgent, 'tag-danger'], ['已到诊', n.arrived, 'tag-ok']
+  ].map(([l, v, c]) => {
+    const color = c === 'tag-danger' && v > 0 ? 'var(--danger)' : (l === '超时未跟进' && v === 0 ? 'var(--brand-dark)' : 'var(--brand-dark)');
+    return `<div class="card"><b style="color:${color}">${v}</b><span class="xs muted">${l}</span></div>`;
+  }).join('');
+}
+
+function renderFilters() {
+  const opts = [['all', '全部'], ['pending', '待跟进'], ['overdue', '超时'], ['urgent', '加急'], ['today', '今日'], ['contacted', '已联系'], ['arrived', '已到诊'], ['closed', '已关闭']];
+  document.getElementById('filters').innerHTML = opts.map(([k, l]) =>
+    `<button class="chip ${filter === k ? 'on' : ''}" data-f="${k}">${l}</button>`).join('');
+  document.getElementById('filters').onclick = e => {
+    const b = e.target.closest('[data-f]'); if (!b) return;
+    filter = b.dataset.f; renderFilters(); renderList();
+  };
+}
+
+function visible() {
+  const tk = todayKey();
+  let items = leads;
+  if (filter === 'pending') items = items.filter(l => l.status === 'pending');
+  else if (filter === 'overdue') items = items.filter(l => { const s = slaInfo(l); return l.status === 'pending' && s && mins(s.ms) > SLA_HOURS * 60; });
+  else if (filter === 'urgent') items = items.filter(l => l.urgency === 'high');
+  else if (filter === 'today') items = items.filter(l => String(l.createdAt).slice(0, 10) === tk);
+  else if (filter !== 'all') items = items.filter(l => l.status === filter);
+
+  if (kw.trim()) {
+    const k = kw.trim().toLowerCase();
+    items = items.filter(l => [
+      l.customer?.name, l.customer?.phone, l.customer?.age, l.service,
+      (l.timePref || []).join(''), l.source, l.summary, l.id
+    ].join(' ').toLowerCase().includes(k));
+  }
+
+  const overdueMs = l => { const s = slaInfo(l); return s ? s.ms : 0; };
+  if (sort === 'wait') items = [...items].sort((a, b) => overdueMs(b) - overdueMs(a));
+  else if (sort === 'urgent') items = [...items].sort((a, b) => (b.urgency === 'high') - (a.urgency === 'high') || new Date(String(b.createdAt).replace(/-/g, '/')) - new Date(String(a.createdAt).replace(/-/g, '/')));
+  else items = [...items].sort((a, b) => new Date(String(b.createdAt).replace(/-/g, '/')) - new Date(String(a.createdAt).replace(/-/g, '/')));
+
+  return items;
+}
+
+function renderList() {
+  const items = visible();
+  const el = document.getElementById('list');
+  document.getElementById('countLine').textContent = `显示 ${items.length} 条 / 共 ${leads.length} 条` +
+    (items.length ? ' · 超过 ' + SLA_HOURS + ' 小时未处理的待跟进线索会用红色标出' : '');
+  if (!items.length) { el.innerHTML = '<div class="empty" style="padding:40px 20px">没有符合条件的线索<br><span class="xs">客户在咨询助手产生的记录会自动出现在这里</span></div>'; return; }
+  el.innerHTML = items.map(l => {
+    const st = STATUS[l.status] || STATUS.pending;
+    const title = l.customer?.name || (l.customer?.phone ? l.customer.phone : '匿名咨询');
+    const s = slaInfo(l);
+    const over = l.status === 'pending' && s && mins(s.ms) > SLA_HOURS * 60;
+    return `<div class="lead-item ${cur === l.id ? 'on' : ''}" data-id="${l.id}">
+      <h5>${esc(title)}
+        ${l.urgency === 'high' ? '<span class="tag tag-danger xs">加急</span>' : ''}
+        ${over ? '<span class="tag tag-danger xs">超时</span>' : ''}
+        <span class="tag ${st.cls} xs">${st.label}</span>
+        <span class="spacer"></span>
+        <span class="xs muted">${esc(String(l.createdAt).slice(11, 16))}</span>
+      </h5>
+      <p>${esc((l.summary || '').split('\n')[0] || '')}</p>
+      <div class="row" style="gap:5px;margin-top:6px">
+        ${l.service ? `<span class="tag tag-line xs">${esc(l.service)}</span>` : ''}
+        ${(l.timePref || []).map(t => `<span class="tag tag-line xs">${esc(t)}</span>`).join('')}
+        ${l.consent?.granted ? '<span class="tag tag-ok xs">已授权</span>' : '<span class="tag xs">未授权</span>'}
+      </div>
+      <div class="row" style="gap:6px;margin-top:6px">
+        <span class="xs" style="color:${over ? 'var(--danger)' : 'var(--muted-2)'}">
+          ${s ? (s.waited ? '已等待 ' + s.text : '响应耗时 ' + s.text) : ''}
+        </span>
+        <span class="spacer"></span>
+        ${l.source ? `<span class="xs muted">来自 ${esc(l.source)}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+  el.onclick = e => {
+    const it = e.target.closest('[data-id]'); if (!it) return;
+    cur = it.dataset.id; renderList();
+    renderDetail(leads.find(l => l.id === cur));
+  };
+}
+
+function renderDetail(l) {
+  if (!l) return;
+  const st = STATUS[l.status] || STATUS.pending;
+  const c = l.customer || {};
+  const s = slaInfo(l);
+  const over = l.status === 'pending' && s && mins(s.ms) > SLA_HOURS * 60;
+  document.getElementById('detail').innerHTML = `
+    <div class="pad" style="border-bottom:1px solid var(--line-soft)">
+      <div class="row wrap" style="gap:8px">
+        <div class="b" style="font-size:16px">${esc(c.name || '匿名咨询')}</div>
+        ${l.urgency === 'high' ? '<span class="tag tag-danger">加急</span>' : ''}
+        ${over ? '<span class="tag tag-danger">超时未跟进</span>' : ''}
+        <span class="tag ${st.cls}">${st.label}</span>
+        <span class="spacer"></span>
+        <span class="xs muted">创建 ${esc(l.createdAt)}｜更新 ${esc(l.updatedAt || l.createdAt)}</span>
+      </div>
+      <div class="row wrap" style="gap:8px;margin-top:10px">
+        ${c.phone
+      ? `<a class="tag tag-line" href="tel:${esc(c.phone)}" style="text-decoration:none">📞 ${esc(c.phone)}</a>
+             <button class="btn btn-sm" onclick="copyText('${esc(c.phone)}')">复制号码</button>`
+      : '<span class="tag">未提供电话</span>'}
+        ${c.age ? `<span class="tag tag-line">年龄 ${esc(c.age)}</span>` : ''}
+        ${l.service ? `<span class="tag tag-brand">${esc(l.service)}</span>` : ''}
+        ${(l.timePref || []).length ? `<span class="tag tag-brand">期望：${esc((l.timePref).join('、'))}</span>` : ''}
+      </div>
+      <div class="row wrap" style="gap:8px;margin-top:10px">
+        <span class="tag tag-line">来源渠道：${esc(l.source || '未知')}</span>
+        <span class="tag ${over ? 'tag-danger' : 'tag-line'}">
+          响应时效：${s ? (s.waited ? '已等待 ' + s.text : '首次响应耗时 ' + s.text) : '—'}
+        </span>
+        <span class="tag tag-line">对话 ${(l.transcript || []).length} 轮</span>
+      </div>
+      ${over ? `<div class="notice xs" style="margin-top:10px">这条线索等待已超过 ${SLA_HOURS} 小时，建议先联系客户，如暂无法接通可在备注中记录一次尝试。</div>` : ''}
+    </div>
+
+    <div class="pad" style="border-bottom:1px solid var(--line-soft)">
+      <div class="b small" style="margin-bottom:6px">🔔 转接原因</div>
+      <div class="small">${esc(l.reason || '—')}</div>
+      ${(l.riskLevels || []).length ? `<div class="row wrap" style="gap:5px;margin-top:8px">${l.riskLevels.map(r =>
+      `<span class="tag tag-warn xs">${esc(r)}</span>`).join('')}</div>` : ''}
+    </div>
+
+    <div class="pad" style="border-bottom:1px solid var(--line-soft)">
+      <div class="b small" style="margin-bottom:6px">📝 咨询摘要</div>
+      <div class="small" style="white-space:pre-wrap">${esc(l.summary || '—')}</div>
+    </div>
+
+    <div class="pad" style="border-bottom:1px solid var(--line-soft)">
+      <div class="b small" style="margin-bottom:6px">🔐 客户授权信息</div>
+      ${l.consent?.granted
+      ? `<div class="tag tag-ok">已授权</div><div class="xs muted" style="margin-top:6px">${esc(l.consent.text)}<br>授权时间：${esc(l.consent.at)}</div>`
+      : '<div class="tag">未授权</div><div class="xs muted" style="margin-top:6px">客户尚未授权留存联系方式，请仅在客户主动提供后使用，勿主动外呼推销。</div>'}
+    </div>
+
+    <div class="pad" style="border-bottom:1px solid var(--line-soft)">
+      <div class="b small" style="margin-bottom:10px">💬 对话记录（${(l.transcript || []).length} 条）</div>
+      <div class="tl">
+        ${(l.transcript || []).map(t => `
+          <div class="tl-item ${t.role === 'user' ? 'user' : ''}">
+            <div class="who">${t.role === 'user' ? '客户' : 'AI 助手'} · ${esc(t.at)}</div>
+            <div class="small" style="white-space:pre-wrap">${esc(t.text)}</div>
+            ${(t.sources || []).length ? `<div class="row wrap" style="gap:4px;margin-top:4px">${t.sources.slice(0, 3).map(s2 =>
+        `<span class="src-chip">${esc(s2.id)} ${esc(s2.question.slice(0, 16))}</span>`).join('')}</div>` : ''}
+          </div>`).join('') || '<div class="xs muted">暂无记录</div>'}
+      </div>
+    </div>
+
+    <div class="pad">
+      <div class="b small" style="margin-bottom:8px">✅ 处理状态</div>
+      <div class="row wrap" style="gap:6px">
+        ${Object.entries(STATUS).map(([k, v]) =>
+      `<button class="btn btn-sm ${l.status === k ? 'btn-primary' : ''}" onclick="setStatus('${l.id}','${k}')">${v.label}</button>`).join('')}
+      </div>
+      <div class="row" style="margin-top:12px;gap:8px">
+        <input class="input" id="note" placeholder="添加跟进备注，例如：已电话联系，约定周六上午 10 点">
+        <button class="btn btn-primary nowrap" onclick="addNote('${l.id}')">添加备注</button>
+      </div>
+      <div class="row wrap" style="gap:6px;margin-top:8px">
+        ${['已电话联系，客户确认时间', '客户暂未接通，稍后再拨', '已约定到诊时间', '客户取消', '转为长期关注，暂不到诊']
+        .map(t => `<button class="chip xs" onclick="quickNote('${l.id}','${t}')">${t}</button>`).join('')}
+      </div>
+      <div class="col" style="gap:8px;margin-top:12px">
+        ${(l.notes || []).map(n => `<div class="card" style="padding:9px 12px;box-shadow:none;background:var(--bg-soft)">
+          <div class="small">${esc(n.text)}</div><div class="xs muted">${esc(n.at)}</div></div>`).join('')}
+      </div>
+      <div class="row" style="margin-top:14px">
+        <span class="spacer"></span>
+        <button class="btn btn-sm btn-danger" onclick="delLead('${l.id}')">删除这条线索</button>
+      </div>
+    </div>`;
+}
+
+/* ---------- 操作 ---------- */
+window.setStatus = async (id, s) => { await apiPost('/api/lead', { id, status: s }); load(); };
+window.addNote = async id => {
+  const v = document.getElementById('note').value.trim();
+  if (!v) return;
+  await apiPost('/api/lead', { id, note: v }); load();
+};
+window.quickNote = async (id, text) => { await apiPost('/api/lead', { id, note: text }); load(); };
+window.delLead = async id => {
+  if (!confirm('确认删除这条线索？删除后不可恢复。')) return;
+  await fetch('/api/lead?id=' + encodeURIComponent(id), { method: 'DELETE' });
+  cur = null; load();
+};
+
+/* ---------- 导出 CSV ---------- */
+function csvCell(v) {
+  const s = String(v ?? '').replace(/"/g, '""');
+  return /[",\n]/.test(s) ? '"' + s + '"' : s;
+}
+window.exportCsv = function () {
+  const rows = visible();
+  if (!rows.length) { toast('当前列表没有数据'); return; }
+  const head = ['创建时间', '更新时间', '处理状态', '是否加急', '等待/响应', '姓名', '电话', '年龄', '意向项目', '期望时间', '来源渠道', '是否授权', '转接原因', '咨询摘要', '最新备注'];
+  const body = rows.map(l => {
+    const s = slaInfo(l);
+    return [
+      l.createdAt, l.updatedAt || '', (STATUS[l.status] || STATUS.pending).label,
+      l.urgency === 'high' ? '加急' : '', s ? (s.waited ? '已等待 ' + s.text : '响应 ' + s.text) : '',
+      l.customer?.name || '匿名咨询', l.customer?.phone || '', l.customer?.age || '',
+      l.service || '', (l.timePref || []).join('、'), l.source || '',
+      l.consent?.granted ? '已授权' : '未授权', l.reason || '',
+      String(l.summary || '').replace(/\n/g, ' / '),
+      (l.notes || []).length ? l.notes[l.notes.length - 1].text : ''
+    ].map(csvCell).join(',');
+  });
+  const d = new Date();
+  const stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}_${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}`;
+  download(`颌一口腔咨询线索_${stamp}.csv`, '\ufeff' + [head.join(','), ...body].join('\r\n'), 'text/csv;charset=utf-8');
+  toast('已导出 ' + rows.length + ' 条线索');
+};
+
+/* ---------- 交互绑定 ---------- */
+document.getElementById('search').addEventListener('input', e => { kw = e.target.value; renderList(); });
+document.getElementById('sort').addEventListener('change', e => { sort = e.target.value; renderList(); });
+
+load();
+setInterval(load, 8000);
+</script>
+</body>
+</html>

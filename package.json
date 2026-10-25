@@ -1,0 +1,15 @@
+{
+  "name": "heyikouqiang-ai-workbench",
+  "version": "1.0.0",
+  "private": true,
+  "description": "颌一口腔 AI 工作台：多渠道内容生产工具（方向A）+ AI售前咨询与客户服务助手（方向B）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "extract": "node tools/extract.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

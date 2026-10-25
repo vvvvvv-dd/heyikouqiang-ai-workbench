@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>登录 · 颌一口腔 AI 工作台</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><text y='32' font-size='32'>🦷</text></svg>">
+</head>
+
+<body class="login-body">
+  <div class="login-stage">
+    <div class="login-wrap">
+
+      <!-- 左：品牌区 -->
+      <section class="login-brand">
+        <div class="brand-mark">
+          <svg viewBox="0 0 120 120" aria-label="颌一口腔标识">
+            <defs>
+              <linearGradient id="lgStroke" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#5eead4" />
+                <stop offset="100%" stop-color="#38bdf8" />
+              </linearGradient>
+              <linearGradient id="lgFill" x1="0.2" y1="0" x2="0.8" y2="1">
+                <stop offset="0%" stop-color="#2dd4bf" stop-opacity=".30" />
+                <stop offset="100%" stop-color="#38bdf8" stop-opacity=".05" />
+              </linearGradient>
+              <linearGradient id="lgTooth" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#a7f3ec" />
+                <stop offset="55%" stop-color="#5eead4" />
+                <stop offset="100%" stop-color="#38bdf8" />
+              </linearGradient>
+            </defs>
+            <rect x="7" y="7" width="106" height="106" rx="30" fill="url(#lgFill)" stroke="url(#lgStroke)"
+              stroke-width="1.4" />
+            <circle cx="60" cy="60" r="43" fill="none" stroke="url(#lgStroke)" stroke-width="1" opacity=".35"
+              stroke-dasharray="3 6" />
+            <g transform="translate(60 56) scale(1.42) translate(-20 -20)">
+              <path
+                d="M7.5 20C7.5 11.5 12.8 5 20 5C27.2 5 32.5 11.5 32.5 20L32.5 26C32.5 31.5 31.2 35.5 29.8 38.4C29.3 40 27.3 40.2 26.9 38.6C26.4 36.4 27 33 24.6 30.6C23 29.4 21.6 28.6 20 28.6C18.4 28.6 17 29.4 15.4 30.6C13 33 13.6 36.4 13.1 38.6C12.7 40.2 10.7 40 10.2 38.4C8.8 35.5 7.5 31.5 7.5 26L7.5 20Z"
+                fill="url(#lgTooth)" />
+            </g>
+            <path d="M36 86Q60 100 84 86" fill="none" stroke="url(#lgStroke)" stroke-width="2" stroke-linecap="round"
+              opacity=".5" />
+          </svg>
+        </div>
+
+        <h1 class="brand-name">颌一口腔</h1>
+        <div class="brand-en">HEYI&nbsp;DENTAL&nbsp;CLINIC</div>
+        <p class="brand-slogan">让专业被看见，让服务不断线</p>
+
+        <div class="brand-rule"></div>
+
+        <div class="brand-stats" id="brandStats">
+          <div class="bstat"><b>—</b><span>门诊标准问答</span></div>
+          <div class="bstat"><b>—</b><span>执业医师</span></div>
+          <div class="bstat"><b>—</b><span>内容发布平台</span></div>
+        </div>
+
+        <div class="brand-foot">
+          <span>长沙市雨花区 · 韶山北路</span>
+          <span class="dot">·</span>
+          <span>儿童 · 成人 · 老年口腔健康服务</span>
+        </div>
+      </section>
+
+      <!-- 右：登录区 -->
+      <section class="login-panel">
+        <header class="lp-head">
+          <h2>登录工作台</h2>
+          <p>请使用门诊分配的账号登录，不同岗位可见的功能范围不同。</p>
+        </header>
+
+        <div class="lp-msg" id="msg"></div>
+
+        <form id="loginForm" autocomplete="on">
+          <label class="lf">
+            <span class="field-label">账号</span>
+            <div class="field-box">
+              <span class="field-ico">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <circle cx="12" cy="8" r="3.6" />
+                  <path d="M4.8 20c0-3.6 3.2-6 7.2-6s7.2 2.4 7.2 6" stroke-linecap="round" />
+                </svg>
+              </span>
+              <input id="username" name="username" type="text" placeholder="请输入账号" autocomplete="username"
+                autocapitalize="off" spellcheck="false" required>
+            </div>
+          </label>
+
+          <label class="lf">
+            <span class="field-label">密码</span>
+            <div class="field-box">
+              <span class="field-ico">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <rect x="4.6" y="10.4" width="14.8" height="9.6" rx="2.4" />
+                  <path d="M8.4 10.4V7.8a3.6 3.6 0 0 1 7.2 0v2.6" stroke-linecap="round" />
+                </svg>
+              </span>
+              <input id="password" name="password" type="password" placeholder="请输入密码"
+                autocomplete="current-password" required>
+              <button type="button" class="eye" id="eye" aria-label="显示密码">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12Z" stroke-linecap="round" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </button>
+            </div>
+          </label>
+
+          <button class="btn btn-primary lgbtn" id="submit" type="submit">
+            <span id="submitText">进入工作台</span>
+          </button>
+        </form>
+
+        <div class="demo-accounts">
+          <div class="demo-head">
+            <span>演示账号</span>
+            <em>点击任一账号自动填入</em>
+          </div>
+          <div class="demo-grid">
+            <button type="button" class="demo-item" data-u="admin" data-p="heyi2026">
+              <b>门诊负责人</b><span>admin · 全部功能</span>
+            </button>
+            <button type="button" class="demo-item" data-u="ops" data-p="heyi2026">
+              <b>运营人员</b><span>ops · 内容生产</span>
+            </button>
+            <button type="button" class="demo-item" data-u="front" data-p="heyi2026">
+              <b>前台接待</b><span>front · 客户线索</span>
+            </button>
+          </div>
+        </div>
+
+        <footer class="lp-foot">
+          <div>本页为门诊内部工作台入口，账号由门诊统一分配。</div>
+          <div>如果你是就诊客户，请点击 <a href="/consult">客户在线咨询</a>，无需登录。</div>
+        </footer>
+      </section>
+
+    </div>
+
+    <div class="login-copyright">颌一口腔 AI 工作台 · 内部使用 · 数据仅存于本机</div>
+  </div>
+
+  <div class="toast" id="toastEl"></div>
+
+  <script src="/js/common.js"></script>
+  <script>
+    const $ = s => document.querySelector(s);
+    const to = new URLSearchParams(location.search).get('to') || '/';
+    const denied = new URLSearchParams(location.search).get('deny');
+
+    function say(text, kind) {
+      const m = $('#msg');
+      m.className = 'lp-msg on ' + (kind || 'err');
+      m.textContent = text;
+    }
+
+    /* 品牌区数据 */
+    fetch('/api/engine').then(r => r.json()).then(d => {
+      $('#brandStats').innerHTML = [
+        [d.kb.qa + ' 条', '门诊标准问答'],
+        [d.kb.doctors + ' 位', '执业医师'],
+        ['5 个', '内容发布平台']
+      ].map(([b, s]) => `<div class="bstat"><b>${b}</b><span>${s}</span></div>`).join('');
+    }).catch(() => { });
+
+    /* 已登录直接进 */
+    fetch('/api/me').then(r => r.json()).then(d => {
+      if (d.user) location.replace(to);
+    }).catch(() => { });
+
+    if (denied) say('「' + decodeURIComponent(denied) + '」不在当前账号的权限范围内，已返回你有权限的页面。', 'warn');
+
+    $('#eye').addEventListener('click', () => {
+      const i = $('#password');
+      i.type = i.type === 'password' ? 'text' : 'password';
+      i.focus();
+    });
+
+    document.querySelectorAll('.demo-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        $('#username').value = btn.dataset.u;
+        $('#password').value = btn.dataset.p;
+        $('#password').type = 'password';
+        say('已填入「' + btn.querySelector('b').textContent + '」账号，点击「进入工作台」即可。', 'ok');
+      });
+    });
+
+    $('#loginForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const u = $('#username').value.trim();
+      const p = $('#password').value;
+      if (!u || !p) return say('请输入账号和密码。');
+      const btn = $('#submit');
+      btn.disabled = true;
+      $('#submitText').textContent = '正在登录…';
+      try {
+        const r = await api('/api/login', { username: u, password: p });
+        if (!r.ok) { say(r.error || '登录失败'); return; }
+        say('登录成功，正在进入…', 'ok');
+        location.replace(to);
+      } catch (err) {
+        say('无法连接服务，请确认工作台已启动。');
+      } finally {
+        btn.disabled = false;
+        $('#submitText').textContent = '进入工作台';
+      }
+    });
+  </script>
+</body>
+
+</html>

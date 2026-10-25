@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>内容生产 · 颌一口腔</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="topbar"></div>
+
+<div class="layout">
+  <!-- 左：输入 -->
+  <div class="side">
+    <div class="card pad">
+      <div class="b" style="margin-bottom:10px">① 选择创作来源</div>
+      <div class="row wrap" style="gap:6px;margin-bottom:14px">
+        <button class="chip on" data-mode="topic">主题创作</button>
+        <button class="chip" data-mode="term">节气科普</button>
+        <button class="chip" data-mode="material">门诊素材</button>
+      </div>
+
+      <div id="pane-topic">
+        <label class="field">
+          <span>内容主题</span>
+          <input class="input" id="topic" placeholder="例如：儿童涂氟、洗牙、种植牙" value="儿童涂氟">
+        </label>
+        <div class="xs muted" style="margin-bottom:6px">常用主题</div>
+        <div class="row wrap" style="gap:6px" id="topicChips"></div>
+      </div>
+
+      <div id="pane-term" class="hidden">
+        <label class="field">
+          <span>节气</span>
+          <select class="input" id="term"></select>
+        </label>
+        <div class="card" id="termInfo" style="padding:10px 12px;background:var(--bg-soft);box-shadow:none"></div>
+      </div>
+
+      <div id="pane-material" class="hidden">
+        <label class="field">
+          <span>素材类型</span>
+          <select class="input" id="matType">
+            <option value="doctor">医生介绍卡</option>
+            <option value="environment">门诊环境照片</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>选择素材</span>
+          <select class="input" id="matId"></select>
+        </label>
+        <img id="matPreview" style="width:100%;border-radius:10px;border:1px solid var(--line);display:none">
+        <div id="matGuard" class="xs muted" style="margin-top:8px"></div>
+      </div>
+    </div>
+
+    <div class="card pad" style="margin-top:14px">
+      <div class="b" style="margin-bottom:10px">② 选择发布平台</div>
+      <div class="row wrap" style="gap:6px" id="platforms"></div>
+      <div class="xs muted" style="margin-top:10px">
+        同一主题会按各平台的读者、语气、形式分别生成，不是同一段话改字数。
+      </div>
+    </div>
+
+    <div class="card pad" style="margin-top:14px">
+      <button class="btn btn-primary" style="width:100%" id="gen">✨ 生成内容</button>
+      <button class="btn" style="width:100%;margin-top:8px" id="regen">🔄 换个角度重新生成</button>
+      <div class="xs muted" style="margin-top:10px" id="engineNote"></div>
+    </div>
+  </div>
+
+  <!-- 右：结果 -->
+  <div>
+    <div class="card">
+      <div class="tabs" id="tabs"></div>
+      <div id="result"><div class="empty">选择主题与平台后，点击「生成内容」<br>结果会按平台分别呈现，可直接编辑、复制、导出</div></div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="pad" style="padding-bottom:12px;border-bottom:1px solid var(--line-soft)">
+        <div class="b">平台差异对照</div>
+        <div class="xs muted">同一主题在四个平台的处理方式完全不同</div>
+      </div>
+      <div class="diff-grid" id="diff" style="padding-top:14px"></div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="pad" style="padding-bottom:12px;border-bottom:1px solid var(--line-soft)" id="libHead">
+        <div class="b">内容库</div>
+        <div class="xs muted">生成的内容可保存到这里，支持审核状态标记</div>
+      </div>
+      <div id="library"></div>
+    </div>
+  </div>
+</div>
+
+<div id="modalHost"></div>
+
+<script src="/js/common.js"></script>
+<script>
+const PLATFORMS = [
+  { key: 'xhs', name: '小红书', icon: '📕' },
+  { key: 'douyin', name: '抖音', icon: '🎵' },
+  { key: 'sph', name: '视频号', icon: '💚' },
+  { key: 'gzh', name: '公众号', icon: '📘' },
+  { key: 'pyq', name: '朋友圈', icon: '💬' }
+];
+const TOPIC_PRESETS = ['儿童涂氟', '窝沟封闭', '洗牙', '补牙', '拔牙', '牙齿矫正', '种植牙', '乳牙蛀牙', '嚼槟榔', '儿童早期矫治'];
+
+let mode = 'topic';
+let variant = 0;
+let selected = new Set(['xhs', 'gzh']);
+let data = null, active = 0;
+let clinic = null, assets = [], terms = {};
+
+/* ---------- 初始化 ---------- */
+apiGet('/api/clinic').then(d => {
+  clinic = d.clinic; assets = d.assets;
+  document.getElementById('matId').innerHTML =
+    d.clinic.doctors.map(x => `<option value="${x.name}">${x.name} ${x.title}</option>`).join('');
+  fillMaterial();
+  document.getElementById('topicChips').innerHTML =
+    TOPIC_PRESETS.map(t => `<button class="chip" onclick="document.getElementById('topic').value='${t}'">${t}</button>`).join('');
+});
+apiGet('/api/engine').then(d => {
+  document.getElementById('engineNote').innerHTML = d.llm.available
+    ? `当前：<b>本地引擎 + ${esc(d.llm.model)}</b> 协同`
+    : '当前：<b>本地引擎</b>（可在「模型与知识库」页配置大模型增强，不配置也能完整使用）';
+});
+
+document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => {
+  document.querySelectorAll('[data-mode]').forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+  mode = b.dataset.mode;
+  ['topic', 'term', 'material'].forEach(m =>
+    document.getElementById('pane-' + m).classList.toggle('hidden', m !== mode));
+});
+
+document.getElementById('platforms').innerHTML = PLATFORMS.map(p =>
+  `<button class="chip ${selected.has(p.key) ? 'on' : ''}" data-p="${p.key}">${p.icon} ${p.name}</button>`).join('');
+document.getElementById('platforms').onclick = e => {
+  const b = e.target.closest('[data-p]'); if (!b) return;
+  const k = b.dataset.p;
+  selected.has(k) ? selected.delete(k) : selected.add(k);
+  if (!selected.size) selected.add(k);
+  document.querySelectorAll('[data-p]').forEach(x => x.classList.toggle('on', selected.has(x.dataset.p)));
+};
+
+/* ---------- 节气 ---------- */
+fetch('/api/topics').then(r => r.json()).then(() => { });
+apiGet('/api/engine').then(() => { });
+(async function initTerms() {
+  const r = await fetch('/api/solar-terms').catch(() => null);
+  const sel = document.getElementById('term');
+  const list = r && r.ok ? (await r.json()).terms : null;
+  if (list) {
+    terms = list;
+    sel.innerHTML = Object.keys(list).map(k => `<option value="${k}">${k}（${list[k].time}）</option>`).join('');
+  } else {
+    sel.innerHTML = '<option value="霜降">霜降（10 月中下旬）</option>';
+  }
+  sel.value = '霜降';
+  sel.onchange = renderTermInfo;
+  renderTermInfo();
+})();
+
+function renderTermInfo() {
+  const t = terms[document.getElementById('term').value];
+  document.getElementById('termInfo').innerHTML = t ? `
+    <div class="xs"><b>气候：</b>${esc(t.climate)}</div>
+    <div class="xs"><b>口腔关注点：</b>${esc(t.oral)}</div>
+    <div class="xs"><b>长沙生活：</b>${esc(t.local)}</div>` : '';
+}
+
+/* ---------- 素材 ---------- */
+document.getElementById('matType').onchange = fillMaterial;
+document.getElementById('matId').onchange = fillMaterial;
+function fillMaterial() {
+  const type = document.getElementById('matType').value;
+  const sel = document.getElementById('matId');
+  if (type === 'doctor') {
+    sel.innerHTML = (clinic?.doctors || []).map(d => `<option value="${d.name}">${d.name} ${d.title}</option>`).join('');
+    document.getElementById('matPreview').style.display = 'none';
+    document.getElementById('matGuard').textContent =
+      '约束：仅使用门诊已核对的姓名与"医师"身份，不添加未经核对的职称、毕业院校、执业年限或疗效表述。';
+  } else {
+    const env = assets.filter(a => !/医生介绍卡|示意图/.test(a.title));
+    sel.innerHTML = env.map(a => `<option value="${a.file}">${a.title}</option>`).join('');
+    const img = document.getElementById('matPreview');
+    img.style.display = 'block';
+    img.src = env[0]?.url || '';
+    sel.onchange = () => { img.src = assets.find(a => a.file === sel.value)?.url || ''; };
+    document.getElementById('matGuard').textContent =
+      '约束：只描述图片中真实可见的内容，不虚构设备型号，不暗示设施全天开放，不涉及医生排班承诺。';
+  }
+}
+
+/* ---------- 生成 ---------- */
+async function generate(newVariant = false) {
+  if (newVariant) variant = (variant + 1) % 4;
+  const btn = document.getElementById('gen');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> 生成中…';
+  const payload = { platforms: [...selected], variant, mode };
+  if (mode === 'topic') payload.topic = document.getElementById('topic').value.trim();
+  if (mode === 'term') payload.term = document.getElementById('term').value;
+  if (mode === 'material') {
+    payload.materialType = document.getElementById('matType').value;
+    payload.materialId = document.getElementById('matId').value;
+  }
+  try {
+    data = await apiPost('/api/content/generate', payload);
+    active = 0;
+    render();
+    if (data.llmNote) toast('已回退本地引擎：' + data.llmNote.slice(0, 40), 4000);
+  } catch (e) { toast('生成失败：' + e.message); }
+  btn.disabled = false; btn.innerHTML = '✨ 生成内容';
+}
+document.getElementById('gen').onclick = () => generate(false);
+document.getElementById('regen').onclick = () => generate(true);
+
+/* ---------- 渲染 ---------- */
+function render() {
+  if (!data || !data.results) return;
+  document.getElementById('tabs').innerHTML = data.results.map((r, i) =>
+    `<div class="tab ${i === active ? 'on' : ''}" data-i="${i}">${r.icon} ${r.platformName}</div>`).join('');
+  document.getElementById('tabs').onclick = e => {
+    const t = e.target.closest('[data-i]'); if (!t) return;
+    active = +t.dataset.i; render();
+  };
+
+  const r = data.results[active];
+  const c = r.compliance;
+  document.getElementById('result').innerHTML = `
+    <div class="result-head">
+      <div style="flex:1">
+        <div class="b" style="font-size:15px">${r.icon} ${r.platformName} · ${esc(data.topic)}</div>
+        <div class="xs muted">${esc(r.profile.format)} · 约 ${r.wordCount} 字 · 变体 ${data.variant + 1}/4</div>
+      </div>
+      <div class="row" style="gap:6px">
+        <button class="btn btn-sm" id="btnCopy">📋 复制全文</button>
+        <button class="btn btn-sm" id="btnDown">⬇️ 导出</button>
+        <button class="btn btn-sm btn-primary" id="btnSave">💾 存到内容库</button>
+      </div>
+    </div>
+
+    <div class="profile-note">
+      <b>这个平台的用户：</b>${esc(r.profile.reader)}<br>
+      <b>写作要求：</b>${esc(r.profile.tone)}｜${esc(r.profile.limits)}
+      ${r.guard ? `<br><b>素材使用约束：</b>${esc(r.guard)}` : ''}
+      ${r.solar ? `<br><b>节气背景：</b>${esc(r.solar.climate)}｜${esc(r.solar.oral)}｜${esc(r.solar.local)}` : ''}
+    </div>
+
+    <div class="compliance ${c.pass ? 'pass' : 'fail'}" style="margin-top:12px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span>${c.pass ? '✅' : '⛔'}</span>
+        <b>合规体检${c.pass ? '通过' : '未通过'}</b>
+        <span class="spacer"></span>
+        <span class="xs">${c.pass ? '未发现夸大、疗效承诺、虚构资质或价格信息' : c.issues.length + ' 处需要处理'}</span>
+      </div>
+      ${c.issues.length ? `<ul class="issue">${c.issues.map(i =>
+        `<li><b>${i.level === 'high' ? '高风险' : '提示'}</b>：命中「${esc(i.words.join('、'))}」— ${esc(i.tip)}</li>`).join('')}</ul>` : ''}
+    </div>
+
+    <div style="padding:14px 18px 18px" class="col">
+      <label class="field" style="margin-bottom:8px">
+        <span>标题（可直接修改）</span>
+        <input class="input b" id="rTitle" value="${esc(r.title)}">
+      </label>
+      <label class="field" style="margin-bottom:4px">
+        <span>正文 / 脚本（可直接修改）</span>
+        <textarea class="input" id="rBody" rows="16" style="line-height:1.75">${esc(r.body)}</textarea>
+      </label>
+      <div class="xs muted">修改后点击「存到内容库」即可保存这一版；正文改动不影响合规体检，保存时会重新体检一次。</div>
+      ${r.imagePlan?.length ? `
+      <div style="margin-top:10px">
+        <div class="b small" style="margin-bottom:6px">🖼 配图建议</div>
+        <ul class="xs muted" style="margin:0;padding-left:18px">${r.imagePlan.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+      </div>` : ''}
+    </div>
+
+    <details class="facts" style="margin-bottom:18px">
+      <summary>📚 内容依据（${r.facts.length} 条门诊知识库条目，可核对）</summary>
+      <div class="facts-body">
+        ${r.facts.length ? r.facts.map(f => `<div class="fact"><b>${esc(f.id)} ${esc(f.question)}</b>${esc(f.answer)}</div>`).join('')
+        : '<div class="xs muted">未匹配到门诊知识库条目，请先由工作人员补充依据后再发布。</div>'}
+        ${r.llm ? '<div class="xs muted">本节内容由大模型生成，已通过合规体检；发布前仍建议人工核对依据。</div>' : ''}
+      </div>
+    </details>`;
+
+  document.getElementById('btnCopy').onclick = () =>
+    copyText(document.getElementById('rTitle').value + '\n\n' + document.getElementById('rBody').value);
+  document.getElementById('btnDown').onclick = () => {
+    const r = data.results[active];
+    download(`${data.topic}-${r.platformName}.md`,
+      `# ${document.getElementById('rTitle').value}\n\n${document.getElementById('rBody').value}\n\n---\n\n## 内容依据\n` +
+      r.facts.map(f => `- [${f.id}] ${f.question}：${f.answer}`).join('\n') +
+      `\n\n## 配图建议\n` + (r.imagePlan || []).map(x => `- ${x}`).join('\n') +
+      `\n\n> ${clinic.name}｜${clinic.address}｜${clinic.contact}`, 'text/markdown;charset=utf-8');
+  };
+  document.getElementById('btnSave').onclick = saveCurrent;
+
+  document.getElementById('diff').innerHTML = data.results.map(r => `
+    <div class="diff-card">
+      <h4>${r.icon} ${r.platformName}</h4>
+      <p><b>读者：</b>${esc(r.profile.reader)}</p>
+      <p><b>形式：</b>${esc(r.profile.format)}</p>
+      <p><b>标题：</b>${esc(r.title.slice(0, 26))}${r.title.length > 26 ? '…' : ''}</p>
+      <p><b>字数：</b>${r.wordCount} 字</p>
+    </div>`).join('');
+}
+
+async function saveCurrent() {
+  const r = data.results[active];
+  const title = document.getElementById('rTitle').value;
+  const body = document.getElementById('rBody').value;
+  const chk = await apiPost('/api/content/check', { text: title + '\n' + body });
+  await apiPost('/api/contents', {
+    topic: data.topic, platform: r.platform, platformName: r.platformName, icon: r.icon,
+    title, body, imagePlan: r.imagePlan, facts: r.facts,
+    compliance: chk, status: chk.pass ? 'draft' : 'blocked'
+  });
+  toast(chk.pass ? '已保存到内容库' : '已保存，但合规体检未通过，已标记为「待修改」');
+  loadLibrary();
+}
+
+/* ---------- 内容库 ---------- */
+async function loadLibrary() {
+  const { items } = await apiGet('/api/contents');
+  const el = document.getElementById('library');
+  if (!items.length) { el.innerHTML = '<div class="empty">还没有保存的内容</div>'; return; }
+  el.innerHTML = items.map(it => `
+    <div class="kb-item">
+      <div class="row">
+        <b>${it.icon || '📝'} ${esc(it.title)}</b>
+        <span class="spacer"></span>
+        <span class="tag ${it.compliance?.pass ? 'tag-ok' : 'tag-danger'} xs">${it.compliance?.pass ? '合规通过' : '待修改'}</span>
+        <span class="tag ${it.status === 'approved' ? 'tag-brand' : 'tag-line'} xs">${it.status === 'approved' ? '已审核' : '草稿'}</span>
+      </div>
+      <p>${esc(it.platformName)} · ${esc(it.topic)} · ${esc(String(it.createdAt).slice(0, 16))}</p>
+      <div class="row" style="gap:6px;margin-top:8px">
+        <button class="btn btn-sm" onclick='copySaved(${JSON.stringify(JSON.stringify(it.title + "\n\n" + it.body))})'>复制</button>
+        <button class="btn btn-sm" onclick="setStatus('${it.id}','${it.status === 'approved' ? 'draft' : 'approved'}')">
+          ${it.status === 'approved' ? '取消审核' : '标记已审核'}
+        </button>
+        <button class="btn btn-sm btn-danger" onclick="delItem('${it.id}')">删除</button>
+      </div>
+    </div>`).join('');
+}
+window.copySaved = t => copyText(JSON.parse(t));
+window.setStatus = async (id, s) => { await apiPost('/api/contents/update', { id, status: s }); loadLibrary(); };
+window.delItem = async id => { await fetch('/api/contents?id=' + encodeURIComponent(id), { method: 'DELETE' }); loadLibrary(); };
+
+renderTopbar('/content');
+loadLibrary();
+</script>
+</body>
+</html>

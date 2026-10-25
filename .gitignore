@@ -1,0 +1,23 @@
+# ── 依赖 ──
+node_modules/
+
+# ── 运行时数据（含客户线索与会话票据，禁止入库）──
+# lib/store.js 启动时会自行创建 store/ 目录，此处保留占位文件以维持结构
+store/*
+!store/.gitkeep
+
+# ── 大模型密钥 ──
+# 真实 Key 写进 config.json 一旦推送即被 GitHub Secret Scanning 命中并吊销。
+# 请改用环境变量 LLM_API_KEY，或在启动后的「模型与知识库」页面配置（存于 store/llm.json，同样被忽略）。
+config.json
+
+# ── 编辑器与工具 ──
+.workbuddy/
+.vscode/
+.idea/
+
+# ── 系统文件 ──
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
